@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { ReactNode } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 
-type TextProps = {
+type HeadingProps = {
   children: ReactNode;
   size?: 'xs' | 'sm' | 'base' | 'lg';
   className?: string;
@@ -14,7 +14,7 @@ export function Heading({
   className = '',
   children,
   size = 'base',
-}: TextProps) {
+}: HeadingProps) {
   const Component = asChild ? Slot : 'h2';
 
   return (

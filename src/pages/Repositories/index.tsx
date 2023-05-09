@@ -1,61 +1,59 @@
-import { AxiosResponse } from 'axios';
-import { useEffect, useState } from 'react';
-import { api } from '../../services/api';
+import { useEffect } from 'react';
+import { useRepository } from '../../contexts/RepositoryContext';
 import { EmptyRepos } from './components/EmptyRepos';
 import { RepositoryCard } from './components/RepositoryCard';
-import { Repository } from './types';
+import { Heading } from '../../components/Heading';
+import { useForm, FormProvider } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form } from '../../components/Form';
 
 export function Repositories() {
-  const [repos, setRepos] = useState<Repository[]>([]);
-  const [filteredRepos, setFilteredRepos] = useState<Repository[]>(repos);
-  const [isFetching, setIsFetching] = useState(true);
+  const {
+    isLoadingRepos,
+    isEmptyRepos,
+    filteredRepos,
+    getRepositories,
+    handleSearchRepository,
+  } = useRepository();
 
-  const hasRepos = filteredRepos.length > 0;
-  const isLoadingRepos = !hasRepos && isFetching;
-  const isEmptyRepos = !hasRepos && !isFetching;
+  const searchRepositorySchema = z.object({
+    repositoryName: z
+      .string()
+      .transform((repositoryName) => repositoryName.toLowerCase()),
+  });
+
+  type SearchRepositoryType = z.infer<typeof searchRepositorySchema>;
+
+  const searchRepositoryForm = useForm<SearchRepositoryType>({
+    resolver: zodResolver(searchRepositorySchema),
+  });
+
+  const { watch } = searchRepositoryForm;
+
+  const repositoryName = watch('repositoryName');
 
   useEffect(() => {
-    setIsFetching(true);
+    handleSearchRepository(repositoryName);
+  }, [repositoryName]);
 
-    api
-      .get('/users/pierrebosch/repos')
-      .then(({ data: githubRepos }: AxiosResponse<Repository[]>) => {
-        setRepos(githubRepos);
-        setFilteredRepos(githubRepos);
-      })
-      .finally(() => setIsFetching(false));
+  useEffect(() => {
+    getRepositories();
   }, []);
 
   if (isLoadingRepos) {
-    return <h1>Carregando repositórios...</h1>;
+    return (
+      <Heading asChild size="xs">
+        <h1>Carregando repositórios...</h1>
+      </Heading>
+    );
   }
-
-  const handleSearchRepository = (event: any) => {
-    const searchedRepositoryName = event.target.value.toLowerCase();
-    const isEmptyRepositoryName = searchedRepositoryName === '';
-
-    if (isEmptyRepositoryName) {
-      setFilteredRepos(repos);
-      return;
-    }
-
-    const repositoriesFound = repos.filter((currentRepository) => {
-      const currentRepositoryName = currentRepository.name.toLowerCase();
-
-      return currentRepositoryName.includes(searchedRepositoryName);
-    });
-
-    setFilteredRepos(repositoriesFound);
-  };
 
   return (
     <div className="flex flex-col w-full max-w-3xl divide-y divide-zinc-800">
-      <input
-        type="text"
-        onChange={handleSearchRepository}
-        placeholder="Find a repository"
-        className="bg-github border-2 border-zinc-700 py-2 px-5 rounded-md mb-6 focus:border-blue-400 focus:outline-none text-gray-400"
-      />
+      <FormProvider {...searchRepositoryForm}>
+        <Form.Input name="repositoryName" placeholder="Find a repository..." />
+      </FormProvider>
 
       {isEmptyRepos && <EmptyRepos />}
 
